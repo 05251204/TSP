@@ -52,8 +52,7 @@ def calc_opt(now):
   y=df['y']
   n=len(x)
   ans_df=pd.read_csv('ans_fool.csv')
-  ans_global=[ans_df['0']]
-  ans_global=ans_global[0]
+  path=ans_df['0'].tolist()
 
   dist=[]
   for i in range(n):
@@ -62,46 +61,52 @@ def calc_opt(now):
       li.append(math.sqrt((x[i]-x[j])**2+(y[i]-y[j])**2))
     dist.append(li)
 
-  t1=time.time()
+  t_start=time.time()
 
-  dist_global=0
-  for i in range(n-1):
-    dist_global+=dist[ans_global[i]][ans_global[i+1]]
-  rep_cnt=0
-  while 1:
-    ans=ans_global
-    """
-    p1=random.randint(0,n-2)#[0,n-2]
-    p2=random.randint(0,n-2)
-    p3=random.randint(0,n-2)
-    p4=random.randint(0,n-2)
-    ans[p1+1],ans[p3+1]=ans[p3+1],ans[p1+1]
-    ans[p2+1],ans[p4+1]=ans[p4+1],ans[p2+1]
-    """
-    for i in range(1,n-1):
-      for j in range(i+1,n-1):
-        dist_bef=dist[ans[j-1]][ans[j]]+dist[ans[i-1]][ans[i]]
-        dist_aft=dist[ans[j-1]][ans[i]]+dist[ans[i-1]][ans[j]]
-        if dist_bef>dist_aft:
-          ans[j],ans[i]=ans[i],ans[j]
-    dist_=0
-    for i in range(n-1):
-      dist_+=dist[ans[i]][ans[i+1]]
-    if dist_global>dist_:
-      dist_global=dist_
-      ans_global=ans
-    t2=time.time()
-    if t2-t1>6:
+  # Calculate initial path length (not a closed loop)
+  path_length = sum(dist[path[i]][path[i+1]] for i in range(n - 1))
+  print(f"Initial path length: {path_length}")
+
+  improved = True
+  while improved:
+    improved = False
+    # Iterate through all pairs of non-adjacent edges to perform a 2-opt swap.
+    # Edge 1: (path[i], path[i+1]), Edge 2: (path[j], path[j+1])
+    # We ensure j > i + 1 so the edges are not adjacent.
+    for i in range(n - 2):
+      for j in range(i + 2, n - 1):
+        p_i, p_i1 = path[i], path[i+1]
+        p_j, p_j1 = path[j], path[j+1]
+
+        # Cost of original edges
+        current_edge_dist = dist[p_i][p_i1] + dist[p_j][p_j1]
+        # Cost of new edges after reversing the segment path[i+1...j]
+        new_edge_dist = dist[p_i][p_j] + dist[p_i1][p_j1]
+
+        if new_edge_dist < current_edge_dist:
+          # Perform the swap by reversing the segment
+          path[i+1:j+1] = path[i+1:j+1][::-1]
+
+          # Update total distance with the difference
+          path_length += new_edge_dist - current_edge_dist
+          improved = True
+          break  # Exit inner loop and restart search
+      if improved:
+        break  # Exit outer loop and restart search
+
+    if time.time() - t_start > 10: # Time limit
+      print("Time limit exceeded.")
       break
-    rep_cnt+=1
-  ans_df=pd.DataFrame(ans_global)
+      
+  ans_df=pd.DataFrame(path)
   ans_df.to_csv('ans_opt.csv')
-  print(dist_global)
-  print(rep_cnt)
+  print(f"Final optimized path distance: {path_length}")
+  
 
 
 
 
 print("_loading_")
+calc_fool(0)
 calc_opt(0)
 print("end!")
