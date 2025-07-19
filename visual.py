@@ -37,5 +37,5 @@ def visualize(path):
 
 
 
-visualize("ans_fool.csv")
+visualize("ans_opt.csv")
 

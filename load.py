@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 print("loading___")
-n=100
+n=250
 x=[random.randint(0,1000) for i in range(n)]
 y=[random.randint(0,1000) for i in range(n)]
 

@@ -101,7 +101,86 @@ def calc_opt(now):
   ans_df=pd.DataFrame(path)
   ans_df.to_csv('ans_opt.csv')
   print(f"Final optimized path distance: {path_length}")
-  
+
+
+def calc_dp(start_node):
+    df = pd.read_csv('data.csv')
+    x = df['x']
+    y = df['y']
+    n = len(x)
+
+    if start_node >= n:
+        print(f"Error: start_node {start_node} is out of bounds for {n} cities.")
+        return
+
+    if n == 0:
+        print("No cities to route.")
+        return
+    
+    dist = [[math.sqrt((x[i]-x[j])**2 + (y[i]-y[j])**2) for j in range(n)] for i in range(n)]
+
+    dp = [[float('inf')] * n for _ in range(1 << n)]
+    parent = [[-1] * n for _ in range(1 << n)]
+
+    dp[1 << start_node][start_node] = 0
+
+    for s in range(1, 1 << n):
+        if not (s & (1 << start_node)):
+            continue
+
+        for v in range(n):
+            if not (s & (1 << v)):
+                continue
+
+            prev_s = s ^ (1 << v)
+            if prev_s == 0:
+                continue
+
+            min_val = float('inf')
+            best_u = -1
+            for u in range(n):
+                if prev_s & (1 << u):
+                    if dp[prev_s][u] != float('inf'):
+                        val = dp[prev_s][u] + dist[u][v]
+                        if val < min_val:
+                            min_val = val
+                            best_u = u
+            
+            if best_u != -1:
+                dp[s][v] = min_val
+                parent[s][v] = best_u
+
+    final_mask = (1 << n) - 1
+    min_tour_dist = float('inf')
+    last_node = -1
+
+    if n == 1:
+        min_tour_dist = 0
+        last_node = start_node
+    else:
+        for v in range(n):
+            if dp[final_mask][v] < min_tour_dist:
+                min_tour_dist = dp[final_mask][v]
+                last_node = v
+
+    path = []
+    if last_node != -1:
+        curr_mask = final_mask
+        curr_node = last_node
+        while curr_node != -1:
+            path.append(curr_node)
+            prev_node = parent[curr_mask][curr_node]
+            curr_mask ^= (1 << curr_node)
+            curr_node = prev_node
+    
+    path.reverse()
+    
+    if not path and n > 0:
+        path.append(start_node)
+
+    ans_df = pd.DataFrame(path)
+    ans_df.to_csv('ans_dp.csv', index=False)
+    print(f"DP path distance: {min_tour_dist}")
 
 
 
@@ -109,4 +188,9 @@ def calc_opt(now):
 print("_loading_")
 calc_fool(0)
 calc_opt(0)
+df_for_n = pd.read_csv('data.csv')
+if len(df_for_n) <= 30:
+    calc_dp(0)
+else:
+    print("Skipping DP calculation because N > 20.")
 print("end!")
